@@ -1,0 +1,236 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lumity — build a look around what you love, own and can spend</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="boot-error" class="boot-error" role="alert" hidden></div>
+  <script>
+    (function () {
+      var box = document.getElementById('boot-error');
+      function show(msg) { box.textContent = msg; box.hidden = false; }
+      if (location.protocol === 'file:') {
+        show('This page was opened straight from a file, so the browser blocks its scripts. Start a local server instead: in VS Code use the Live Server extension (right-click index.html, then Open with Live Server), or run "python3 -m http.server 8080" in this folder and open http://localhost:8080.');
+      }
+      window.addEventListener('error', function (e) {
+        if (box.hidden) show('The app could not load a script' + (e.target && e.target.src ? ' (' + e.target.src.split('/').slice(-2).join('/') + ')' : '') + '. Check that the .js files are inside a folder named "js" next to index.html, then reload.');
+      }, true);
+    })();
+  </script>
+
+  <header class="top">
+    <h1>L<span>umity</span></h1>
+    <p>Build a look around what you love, what you own, and what you can spend.</p>
+  </header>
+
+  <p class="demo-note" role="note">Demo catalog: prices and items are illustrative, not live store listings.</p>
+
+  <main class="layout">
+    <section class="panel" aria-labelledby="describe-h">
+      <h2 id="describe-h">Describe your outfit</h2>
+      <label for="desc" class="sr">Outfit description</label>
+      <textarea id="desc" rows="4" maxlength="600" placeholder="e.g. a summery outfit with barrel jeans and a white button-up under $100"></textarea>
+      <div class="examples" id="examples" aria-label="Example prompts"></div>
+
+      <div class="budget">
+        <label for="budget-range">Total budget for new items</label>
+        <div class="budget-row">
+          <input id="budget-range" type="range" min="0" max="300" step="5" value="100">
+          <label class="money"><span class="sr">Budget in dollars</span>$<input id="budget-num" type="number" min="0" max="10000" step="1" value="100" inputmode="numeric"></label>
+        </div>
+        <p id="budget-err" class="error" role="alert" hidden></p>
+      </div>
+
+      <details class="prefs" open>
+        <summary>Preferences</summary>
+        <div class="grid2">
+          <label>Season
+            <select id="p-season">
+              <option value="">Any</option>
+              <option>spring</option>
+              <option>summer</option>
+              <option>fall</option>
+              <option>winter</option>
+            </select>
+          </label>
+
+          <label>Style
+            <select id="p-style">
+              <option value="">Any</option>
+              <option>casual</option>
+              <option>minimal</option>
+              <option>relaxed</option>
+              <option>smart casual</option>
+              <option>streetwear</option>
+              <option>cozy</option>
+              <option>preppy</option>
+              <option>sporty</option>
+              <option>coastal</option>
+              <option>retro</option>
+              <option>outdoor</option>
+              <option>school</option>
+            </select>
+          </label>
+
+          <label>Weather (manual)
+            <select id="p-weather">
+              <option value="">No weather adjustment</option>
+              <option value="hot">Hot · 80°F+</option>
+              <option value="warm">Warm · 65–79°F</option>
+              <option value="cool">Cool · 50–64°F</option>
+              <option value="cold">Cold · below 50°F</option>
+              <option value="rainy">Rainy</option>
+            </select>
+          </label>
+
+          <label class="checkline">
+            <input id="p-owned-only" type="checkbox">
+            <span>Use only clothes I own</span>
+          </label>
+
+          <p class="fine" style="grid-column:1/-1;margin:0">
+            Weather is selected manually; Lumity does not track your location or fetch a forecast.
+          </p>
+
+          <label style="grid-column:1/-1">Outfit type
+            <select id="p-mode">
+              <option value="complete">Complete, with shoes</option>
+              <option value="clothes">Clothes only, no shoes</option>
+            </select>
+          </label>
+        </div>
+      </details>
+
+      <details class="prefs">
+        <summary>I already own…</summary>
+        <form id="owned-form" class="grid2">
+          <label>Name
+            <input id="o-name" required maxlength="60" placeholder="White sneakers">
+          </label>
+          <label>Category
+            <select id="o-cat">
+              <option>top</option>
+              <option>bottom</option>
+              <option>shoes</option>
+              <option>layer</option>
+              <option>accessory</option>
+              <option>onepiece</option>
+            </select>
+          </label>
+          <label>Type
+            <input id="o-type" required maxlength="40" placeholder="sneakers">
+          </label>
+          <label>Color
+            <input id="o-color" required maxlength="30" placeholder="white">
+          </label>
+          <label>Silhouette (optional)
+            <input id="o-sil" maxlength="30">
+          </label>
+          <label>Style tags (optional)
+            <input id="o-styles" maxlength="60" placeholder="casual, minimal">
+          </label>
+          <label>Purchase price ($, optional)
+            <input id="o-purchase-price" type="number" min="0" step="0.01" placeholder="e.g. 35">
+          </label>
+          <label>Times worn (optional)
+            <input id="o-wears" type="number" min="0" step="1" value="0">
+          </label>
+          <button type="submit" class="secondary">Add owned item</button>
+        </form>
+        <ul id="owned-list" class="plain"></ul>
+      </details>
+
+      <button id="build" class="primary" type="button">Build my outfits</button>
+    </section>
+
+    <section class="results" aria-labelledby="results-h">
+      <h2 id="results-h">Your outfits</h2>
+      <div id="chips" class="chips" aria-label="Interpreted preferences"></div>
+      <div id="notices"></div>
+      <p id="status" class="sr" role="status" aria-live="polite"></p>
+      <div id="locks"></div>
+
+      <div id="outfits" class="outfits">
+        <div class="empty">
+          <svg viewBox="0 0 100 120" aria-hidden="true">
+            <path d="M34 14 L20 20 L8 40 L20 48 L26 40 L26 108 L74 108 L74 40 L80 48 L92 40 L80 20 L66 14 Q50 24 34 14Z"/>
+          </svg>
+          <p><strong>Nothing built yet.</strong> Describe an outfit, pick an example, or just set a budget and press Build my outfits.</p>
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="more" class="secondary" type="button" hidden>Show more outfits</button>
+        <button id="clear-outfits" class="secondary" type="button" hidden>Clear outfits</button>
+      </div>
+
+      <section class="feature-panel" aria-labelledby="impact-h">
+        <h3 id="impact-h">Your wardrobe impact</h3>
+        <div id="impact-stats" class="impact-stats"></div>
+        <p class="fine">Estimates are based only on the purchase prices and wear counts you enter. Lumity does not estimate environmental impact from incomplete data.</p>
+      </section>
+
+      <section class="feature-panel" aria-labelledby="planner-h">
+        <h3 id="planner-h">Weekly outfit planner</h3>
+        <p class="fine">Plan outfits for the week and mark planned outfits as worn to update your closet's wear counts.</p>
+        <div id="planner"></div>
+      </section>
+
+      <h3>Saved outfits</h3>
+      <div id="saved"></div>
+
+      <details class="tools">
+        <summary>Add your own clothes</summary>
+        <div class="grid2 filters">
+          <label>Category
+            <select id="f-cat"><option value="">All</option></select>
+          </label>
+          <label>Type contains
+            <input id="f-type" placeholder="jeans">
+          </label>
+          <label>Color contains
+            <input id="f-color" placeholder="olive">
+          </label>
+          <label>Max price ($)
+            <input id="f-price" type="number" min="0" placeholder="60">
+          </label>
+        </div>
+
+        <ul id="catalog-list" class="plain catalog"></ul>
+
+        <h4>Add a custom item</h4>
+        <form id="custom-form" class="grid2">
+          <label>Name <input id="c-name" required maxlength="80"></label>
+          <label>Category <select id="c-cat"></select></label>
+          <label>Type <input id="c-type" required maxlength="40" placeholder="jeans"></label>
+          <label>Subtype <input id="c-sub" maxlength="40" placeholder="straight jeans"></label>
+          <label>Color <input id="c-color" required maxlength="30"></label>
+          <label>Price ($) <input id="c-price" type="number" min="0" step="0.01" required></label>
+          <label>Retailer <input id="c-retailer" maxlength="60"></label>
+          <label>Product URL <input id="c-url" type="url" maxlength="300"></label>
+          <label>Price checked on <input id="c-date" type="date"></label>
+          <button class="secondary" type="submit">Add item</button>
+        </form>
+
+        <p id="tools-msg" class="error" role="alert"></p>
+
+        <div class="row">
+          <button id="export" class="secondary" type="button">Export catalog JSON</button>
+          <label class="secondary file">Import JSON
+            <input id="import" type="file" accept="application/json,.json">
+          </label>
+          <button id="example-schema" class="secondary" type="button">Download example item</button>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <footer>Item subtotals exclude tax and shipping. Generation runs locally in your browser; no account, API or live inventory is involved.</footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
