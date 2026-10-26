@@ -285,8 +285,10 @@ function pieceCard(outfit, slot) {
 function renderOutfits(res) {
   const box = $('outfits');
   box.textContent = '';
-  $('more').hidden = !res.outfits || res.outfits.length < state.count;
+$('more').hidden = !res.outfits || res.outfits.length < state.count;
   $('clear-outfits').hidden = !state.outfits.length;
+
+  if (res.noMatch) return renderNoMatch(res.noMatch);
 
   if (!state.outfits.length) {
     box.appendChild(h('div', { class: 'empty' },
@@ -297,8 +299,6 @@ function renderOutfits(res) {
     ));
     return;
   }
-
-  if (res.noMatch) return renderNoMatch(res.noMatch);
 
   state.outfits.forEach((o, idx) => {
     const budget = state.prefs.noBudget ? null : state.prefs.budgetCents;
@@ -754,12 +754,30 @@ function init() {
     state.dismissed.clear();
     run();
   });
+  $('view-wardrobe').addEventListener('click', () => {
+  const wardrobe = $('wardrobe-details');
+
+  if (!wardrobe) {
+    toast('Could not find the wardrobe section.');
+    return;
+  }
+
+  wardrobe.open = true;
+  renderOwned();
+
+  requestAnimationFrame(() => {
+    $('owned-list').scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+  });
+});
 
   $('more').addEventListener('click', () => {
     state.count += 3;
     run();
   });
-  
+
   $('clear-outfits').addEventListener('click', () => {
   state.outfits = [];
   state.swap = null;
@@ -822,41 +840,79 @@ function init() {
     $(id).addEventListener('input', renderCatalog);
   }
 
-  $('custom-form').addEventListener('submit', e => {
-    e.preventDefault();
+  
+$('custom-form').addEventListener('submit', e => {
+  e.preventDefault();
 
-    const color = $('c-color').value.trim().toLowerCase();
-    const type = $('c-type').value.trim().toLowerCase();
-    const dollars = Number($('c-price').value);
+  const color = $('c-color').value.trim().toLowerCase();
+  const type = $('c-type').value.trim().toLowerCase();
+  const dollars = Number($('c-price').value);
 
-    const item = {
-      id: `custom-${Date.now()}`,
-      name: $('c-name').value.trim(),
-      category: $('c-cat').value,
-      type,
-      subtype: $('c-sub').value.trim().toLowerCase() || type,
-      silhouette: null,
-      fit: 'regular',
-      colors: [color],
-      styles: ['casual'],
-      seasons: ['spring', 'summer', 'fall', 'winter'],
-      formality: 1,
-      priceCents: Math.round(dollars * 100),
-      currency: 'USD',
-      isDemo: false,
-      retailer: $('c-retailer').value.trim() || null,
-      productUrl: $('c-url').value.trim() || null,
-      priceCheckedAt: $('c-date').value || null
-    };
+  const item = {
+    id: `custom-${Date.now()}`,
+    name: $('c-name').value.trim(),
+    category: $('c-cat').value,
+    type,
+    subtype: $('c-sub').value.trim().toLowerCase() || type,
+    silhouette: null,
+    fit: 'regular',
+    colors: [color],
+    styles: ['casual'],
+    seasons: ['spring', 'summer', 'fall', 'winter'],
+    formality: 1,
+    priceCents: Math.round(dollars * 100),
+    currency: 'USD',
+    isDemo: false,
+    retailer: $('c-retailer').value.trim() || null,
+    productUrl: $('c-url').value.trim() || null,
+    priceCheckedAt: $('c-date').value || null
+  };
 
-    const errs = Number.isFinite(dollars) ? validateItem(item) : ['Enter a valid price.'];
+  const errors = Number.isFinite(dollars)
+    ? validateItem(item)
+    : ['Enter a valid price.'];
 
-    if (errs.length) return toolMsg(errs.join(' '));
+  if (errors.length) {
+    toolMsg(errors.join(' '), false);
+    return;
+  }
 
-    addCustom([normalizeItem(item)]);
-    e.target.reset();
-    toolMsg('Item added.', true);
-  });
+  const ownedItem = {
+    id: `owned-${Date.now()}`,
+    name: item.name,
+    category: item.category,
+    type: item.type,
+    subtype: item.subtype,
+    silhouette: null,
+    fit: 'regular',
+    colors: item.colors,
+    colorFamily: familyOf(color),
+    material: null,
+    styles: item.styles,
+    seasons: item.seasons,
+    formality: item.formality,
+    features: [],
+    purchasePriceCents: item.priceCents,
+    wears: 0,
+    owned: true,
+    isDemo: false
+  };
+
+  state.owned.push(ownedItem);
+  save('fw.owned', state.owned);
+
+  renderOwned();
+  renderImpact();
+  renderPlan();
+
+  e.target.reset();
+
+  toolMsg(`${ownedItem.name} was added to your wardrobe!`, true);
+  toast(`${ownedItem.name} added to your wardrobe.`);
+
+  if (state.prefs) run();
+});
+
 
   $('export').addEventListener('click', () => {
     download('lumity-catalog.json', exportCatalog(catalog()));

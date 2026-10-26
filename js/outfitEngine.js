@@ -91,7 +91,10 @@ function comboScore(items, prefs, tpl) {
 }
 
 function pool(prefs, catalog) {
-  const available = prefs.ownedOnly ? [...(prefs.owned || [])] : [...catalog.filter(i => !i.owned), ...(prefs.owned || [])];
+  const available = prefs.ownedOnly
+    ? [...(prefs.owned || [])]
+    : [...catalog.filter(i => !i.owned), ...(prefs.owned || [])];
+
   return available.filter(it => !prefs.excludes.some(ex => hitsExclusion(it, ex)));
 }
 
@@ -100,18 +103,21 @@ function slotCandidates(slot, items, prefs, tpl) {
   if (lock) return [lock];
 
   let list = items.filter(i => i.category === slot);
-  const mine = list.filter(i => i.owned);
-  if (mine.length) list = mine;
 
   const slotRequirements = prefs.requires.filter(r => r.slot === slot);
   if (slotRequirements.length) {
-  list = list.filter(item => slotRequirements.some(requirement => meetsRequirement(item, requirement)));
-}
+    list = list.filter(item =>
+      slotRequirements.every(requirement => meetsRequirement(item, requirement))
+    );
+  }
 
   const ranked = list.map(i => [i, itemScore(i, prefs, tpl)]).sort(byScoreThenId).map(x => x[0]);
   const keep = new Set(ranked.slice(0, PRUNE));
 
-  [...ranked].sort((a, b) => a.priceCents - b.priceCents || (a.id < b.id ? -1 : 1)).slice(0, CHEAPEST).forEach(i => keep.add(i));
+  [...ranked]
+    .sort((a, b) => a.priceCents - b.priceCents || (a.id < b.id ? -1 : 1))
+    .slice(0, CHEAPEST)
+    .forEach(i => keep.add(i));
 
   return ranked.filter(i => keep.has(i));
 }
@@ -151,7 +157,11 @@ function generate(prefs, catalog) {
       let cost = base;
 
       for (const l of optLists) {
-        const pick = l.find(it => cost + (it.owned ? 0 : it.priceCents) <= budget && itemScore(it, prefs, tpl) >= OPTIONAL_MIN);
+        const pick = l.find(it =>
+          cost + (it.owned ? 0 : it.priceCents) <= budget &&
+          itemScore(it, prefs, tpl) >= OPTIONAL_MIN
+        );
+
         if (pick) {
           chosen.push(pick);
           cost += pick.owned ? 0 : pick.priceCents;
@@ -236,13 +246,18 @@ function select(combos, count) {
   const pool = combos.slice(0, POOL_LIMIT);
   const picked = [];
 
-  const shared = (a, b) => Object.values(a.items).filter(i => !i.owned && b.items[i.category]?.id === i.id && !(a.lockedIds?.has(i.id))).length;
+  const shared = (a, b) => Object.values(a.items).filter(i =>
+    !i.owned && b.items[i.category]?.id === i.id && !(a.lockedIds?.has(i.id))
+  ).length;
 
   while (picked.length < count && pool.length) {
     let best = 0, bs = -Infinity;
 
     pool.forEach((c, i) => {
-      const adj = c.score - picked.reduce((a, p) => a + 4 * shared(c, p) + (p.tplId === c.tplId ? 1.5 : 0), 0);
+      const adj = c.score - picked.reduce((a, p) =>
+        a + 4 * shared(c, p) + (p.tplId === c.tplId ? 1.5 : 0), 0
+      );
+
       if (adj > bs + 1e-9) {
         bs = adj;
         best = i;
@@ -258,11 +273,18 @@ function select(combos, count) {
 function diagnose(prefs, catalog) {
   const items = pool(prefs, catalog);
   const budget = budgetOf(prefs);
-  const drops = prefs.requires.map(r => ({ type: 'drop-require', label: r.label, key: `require:${r.label}` }));
+  const drops = prefs.requires.map(r => ({
+    type: 'drop-require',
+    label: r.label,
+    key: `require:${r.label}`
+  }));
 
   for (const r of prefs.requires) {
     if (!items.some(i => meetsRequirement(i, r))) {
-      return { message: `There is nothing in the current catalog that matches "${r.label.replace(/^Required: /, '')}".`, actions: drops };
+      return {
+        message: `There is nothing in the current catalog that matches "${r.label.replace(/^Required: /, '')}".`,
+        actions: drops
+      };
     }
   }
 
@@ -302,7 +324,11 @@ export function buildOutfits(prefs, catalog, count = 3) {
   const lockedIds = new Set(Object.values(p.locks).map(i => i.id));
   combos.forEach(c => { c.lockedIds = lockedIds; });
 
-  return { outfits: select(combos, count).map(c => toOutfit(c, p)), total: combos.length, noMatch: null };
+  return {
+    outfits: select(combos, count).map(c => toOutfit(c, p)),
+    total: combos.length,
+    noMatch: null
+  };
 }
 
 export function alternatives(outfit, slot, prefs, catalog, limit = 8) {
@@ -322,7 +348,10 @@ export function alternatives(outfit, slot, prefs, catalog, limit = 8) {
 
   list = list.filter(i => newCents(others) + (i.owned ? 0 : i.priceCents) <= budget);
 
-  const ranked = list.map(i => [i, comboScore([...others, i], p, tpl)]).sort(byScoreThenId).slice(0, limit).map(x => x[0]);
+  const ranked = list.map(i => [i, comboScore([...others, i], p, tpl)])
+    .sort(byScoreThenId)
+    .slice(0, limit)
+    .map(x => x[0]);
 
   return { error: null, list: ranked };
 }
@@ -337,6 +366,7 @@ export function swapItem(outfit, slot, item, prefs) {
 
   const tpl = TEMPLATES.find(t => t.id === outfit.tplId);
   const p = { ...prefs, locks: prefs.locks || {}, owned: prefs.owned || [] };
+
   const c = {
     key: Object.values(items).map(i => i.id).sort().join('+'),
     tplId: outfit.tplId,

@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -105,8 +104,8 @@
         </div>
       </details>
 
-      <details class="prefs">
-        <summary>I already own…</summary>
+      <details class="prefs" id="wardrobe-details">
+  <summary>My wardrobe — view and manage your clothes</summary>
         <form id="owned-form" class="grid2">
           <label>Name
             <input id="o-name" required maxlength="60" placeholder="White sneakers">
@@ -144,6 +143,7 @@
         <ul id="owned-list" class="plain"></ul>
       </details>
 
+      <button id="view-wardrobe" class="secondary" type="button">View my wardrobe</button>
       <button id="build" class="primary" type="button">Build my outfits</button>
     </section>
 
@@ -185,46 +185,85 @@
 
       <details class="tools">
         <summary>Add your own clothes</summary>
-        <div class="grid2 filters">
-          <label>Category
-            <select id="f-cat"><option value="">All</option></select>
-          </label>
-          <label>Type contains
-            <input id="f-type" placeholder="jeans">
-          </label>
-          <label>Color contains
-            <input id="f-color" placeholder="olive">
-          </label>
-          <label>Max price ($)
-            <input id="f-price" type="number" min="0" placeholder="60">
-          </label>
-        </div>
 
-        <ul id="catalog-list" class="plain catalog"></ul>
+        <section class="reference-catalog" aria-labelledby="reference-title">
+          <div class="section-heading">
+            <span class="section-tag reference-tag">REFERENCE CATALOG</span>
+            <h3 id="reference-title">Browse reference items</h3>
+          </div>
 
-        <h4>Add a custom item</h4>
-        <form id="custom-form" class="grid2">
-          <label>Name <input id="c-name" required maxlength="80"></label>
-          <label>Category <select id="c-cat"></select></label>
-          <label>Type <input id="c-type" required maxlength="40" placeholder="jeans"></label>
-          <label>Subtype <input id="c-sub" maxlength="40" placeholder="straight jeans"></label>
-          <label>Color <input id="c-color" required maxlength="30"></label>
-          <label>Price ($) <input id="c-price" type="number" min="0" step="0.01" required></label>
-          <label>Retailer <input id="c-retailer" maxlength="60"></label>
-          <label>Product URL <input id="c-url" type="url" maxlength="300"></label>
-          <label>Price checked on <input id="c-date" type="date"></label>
-          <button class="secondary" type="submit">Add item</button>
-        </form>
+          <p class="section-description">This is Lumity's built-in reference catalog. These are example clothing items to browse and filter — they are not a list of clothes you personally own. To add something from your own closet, use the form below.</p>
 
-        <p id="tools-msg" class="error" role="alert"></p>
+          <div class="grid2 filters">
+            <label>Category
+              <select id="f-cat"><option value="">All</option></select>
+            </label>
+            <label>Type contains
+              <input id="f-type" placeholder="jeans">
+            </label>
+            <label>Color contains
+              <input id="f-color" placeholder="olive">
+            </label>
+            <label>Max price ($)
+              <input id="f-price" type="number" min="0" placeholder="60">
+            </label>
+          </div>
 
-        <div class="row">
-          <button id="export" class="secondary" type="button">Export catalog JSON</button>
-          <label class="secondary file">Import JSON
-            <input id="import" type="file" accept="application/json,.json">
-          </label>
-          <button id="example-schema" class="secondary" type="button">Download example item</button>
-        </div>
+          <ul id="catalog-list" class="plain catalog"></ul>
+        </section>
+
+        <section class="custom-entry" aria-labelledby="custom-title">
+          <div class="section-heading">
+            <span class="section-tag wardrobe-tag">YOUR WARDROBE</span>
+            <h3 id="custom-title">Add a piece you own</h3>
+          </div>
+
+          <p class="section-description">Add your actual clothing here so Lumity can use it when building outfits. Fill in the details you know; the item name, category, type, color, and price are required.</p>
+
+          <form id="custom-form" class="grid2">
+            <label>Name
+              <input id="c-name" required maxlength="80">
+            </label>
+            <label>Category
+              <select id="c-cat"></select>
+            </label>
+            <label>Type
+              <input id="c-type" required maxlength="40" placeholder="jeans">
+            </label>
+            <label>Subtype
+              <input id="c-sub" maxlength="40" placeholder="straight jeans">
+            </label>
+            <label>Color
+              <input id="c-color" required maxlength="30">
+            </label>
+            <label>Price ($)
+              <input id="c-price" type="number" min="0" step="0.01" required>
+            </label>
+            <label>Retailer
+              <input id="c-retailer" maxlength="60">
+            </label>
+            <label>Product URL
+              <input id="c-url" type="url" maxlength="300">
+            </label>
+            <label>Price checked on
+              <input id="c-date" type="date">
+            </label>
+            <button class="secondary add-item-button" type="submit">Add to my wardrobe</button>
+          </form>
+
+          <p id="tools-msg" class="error" role="alert"></p>
+
+          <div class="catalog-actions">
+            <p class="fine">You can also back up your catalog or import one you saved earlier.</p>
+            <div class="row">
+              <button id="export" class="secondary" type="button">Export catalog JSON</button>
+              <label class="secondary file">Import JSON
+                <input id="import" type="file" accept="application/json,.json">
+              </label>
+              <button id="example-schema" class="secondary" type="button">Download example item</button>
+            </div>
+          </div>
+        </section>
       </details>
     </section>
   </main>
